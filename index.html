@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>MSU-SND 50th Commencement Exercises — A4 Booklet Flipbook</title>
+<style>
+:root{--bg:#17120f;--panel:#241b16;--gold:#e1b24a;--text:#fff7e4;--muted:#cbbda9;--paper:#ffffff}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top,#3a281e 0,#17120f 58%);color:var(--text);overflow:hidden}
+.app{height:100%;display:grid;grid-template-rows:auto 1fr auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:rgba(20,14,11,.82);backdrop-filter:blur(8px);border-bottom:1px solid rgba(225,178,74,.3);z-index:10}
+.title-wrap{display:flex;flex-direction:column;gap:2px;min-width:0}
+.title{font-weight:700;letter-spacing:.3px;font-size:clamp(13px,2vw,18px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subtitle{font-size:12px;color:var(--muted)}
+.counter{font-size:13px;color:var(--muted);white-space:nowrap}
+.stage{position:relative;display:flex;align-items:center;justify-content:center;perspective:2600px;padding:12px;min-height:0}
+.book{position:relative;transform-style:preserve-3d;filter:drop-shadow(0 24px 28px rgba(0,0,0,.55));}
+.spread{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;transform-style:preserve-3d}
+.page{position:relative;background:var(--paper);overflow:hidden;display:flex;align-items:center;justify-content:center;backface-visibility:hidden}
+.page.left{border-radius:10px 2px 2px 10px;box-shadow:inset -18px 0 24px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.06)}
+.page.right{border-radius:2px 10px 10px 2px;box-shadow:inset 18px 0 24px rgba(0,0,0,.10), 0 0 0 1px rgba(0,0,0,.06)}
+.page.blank{background:linear-gradient(90deg,#f7f5ef,#ffffff)}
+.page img{width:100%;height:100%;object-fit:contain;background:#fff;display:block}
+.gutter{position:absolute;left:50%;top:0;bottom:0;width:4px;transform:translateX(-2px);background:linear-gradient(#0000,rgba(0,0,0,.22),#0000);z-index:4;pointer-events:none}
+.turning{position:absolute;top:0;bottom:0;width:50%;right:0;transform-origin:left center;transform-style:preserve-3d;z-index:8;transition:transform .72s cubic-bezier(.2,.72,.1,1)}
+.turning.flip{transform:rotateY(-180deg)}
+.turning .front,.turning .back{position:absolute;inset:0;backface-visibility:hidden;background:#fff;overflow:hidden}
+.turning .front{border-radius:2px 10px 10px 2px;box-shadow:inset 18px 0 24px rgba(0,0,0,.1), 0 0 0 1px rgba(0,0,0,.06)}
+.turning .back{transform:rotateY(180deg);border-radius:10px 2px 2px 10px;box-shadow:inset -18px 0 24px rgba(0,0,0,.1), 0 0 0 1px rgba(0,0,0,.06)}
+.turning img{width:100%;height:100%;object-fit:contain;background:#fff}
+.controls{display:flex;justify-content:center;gap:10px;padding:10px 12px 14px;background:rgba(20,14,11,.82);border-top:1px solid rgba(225,178,74,.25);flex-wrap:wrap}
+button{appearance:none;border:1px solid rgba(225,178,74,.55);background:#2c2019;color:var(--text);padding:10px 18px;border-radius:999px;font-weight:700;cursor:pointer;min-width:120px}
+button:hover{background:#493225} button:disabled{opacity:.35;cursor:not-allowed}
+.hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.72);z-index:2;white-space:nowrap;background:rgba(0,0,0,.18);padding:6px 10px;border-radius:999px}
+@media(max-width:760px){
+  .spread{grid-template-columns:1fr}
+  .page.left{display:none}
+  .page.right{grid-column:1}
+  .gutter{display:none}
+  .turning{width:100%;left:0;right:auto;transform-origin:left center}
+  .hint{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="title-wrap">
+    <div class="title">MSU-SND 50th Commencement Exercises</div>
+    <div class="subtitle">A4 booklet-style flipbook</div>
+  </div>
+  <div class="counter" id="counter"></div>
+</header>
+<main class="stage" id="stage">
+  <div class="book" id="book">
+    <div class="spread">
+      <div class="page left blank" id="leftPage"></div>
+      <div class="page right" id="rightPage"></div>
+      <div class="gutter"></div>
+    </div>
+  </div>
+  <div class="hint">A4 booklet view • click pages, use buttons, swipe, or press ← / →</div>
+</main>
+<footer class="controls">
+  <button id="prev">← Previous</button>
+  <button id="next">Next →</button>
+</footer>
+</div>
+<script>
+const total=29;
+const pages=Array.from({length:total},(_,i)=>`pages/page-${String(i+1).padStart(2,'0')}.jpg`);
+let index=0, animating=false;
+const A4_PAGE_RATIO=210/297;
+const A4_SPREAD_RATIO=420/297;
+const left=document.getElementById('leftPage'), right=document.getElementById('rightPage'), book=document.getElementById('book');
+const prev=document.getElementById('prev'), next=document.getElementById('next'), counter=document.getElementById('counter'), stage=document.getElementById('stage');
+const mobile=()=>matchMedia('(max-width:760px)').matches;
+function setPage(el,n){el.innerHTML='';el.classList.toggle('blank',n<0||n>=total);if(n>=0&&n<total){const im=new Image();im.src=pages[n];im.alt=`Page ${n+1}`;el.appendChild(im)}}
+function sizeBook(){
+  const r=stage.getBoundingClientRect();
+  const maxW=Math.max(100,r.width-24), maxH=Math.max(100,r.height-24);
+  const ratio=mobile()?A4_PAGE_RATIO:A4_SPREAD_RATIO;
+  let w=maxW, h=w/ratio;
+  if(h>maxH){h=maxH; w=h*ratio;}
+  book.style.width=`${Math.floor(w)}px`;
+  book.style.height=`${Math.floor(h)}px`;
+}
+function render(){
+  sizeBook();
+  if(mobile()) { setPage(left,-1); setPage(right,index); counter.textContent=`Page ${index+1} of ${total}`; }
+  else { const l=index===0?-1:index-1; setPage(left,l); setPage(right,index); counter.textContent=l<0?`Cover • Page 1 of ${total}`:`Pages ${l+1}–${index+1} of ${total}`; }
+  prev.disabled=index===0; next.disabled=index>=total-1;
+}
+function go(dir){
+  if(animating) return;
+  const ni=index+dir;
+  if(ni<0||ni>=total) return;
+  animating=true;
+  const turn=document.createElement('div');turn.className='turning';
+  const f=document.createElement('div');f.className='front';
+  const b=document.createElement('div');b.className='back';
+  const fi=new Image(),bi=new Image();fi.src=pages[index];bi.src=pages[ni];f.appendChild(fi);b.appendChild(bi);turn.append(f,b);book.appendChild(turn);
+  if(dir<0){turn.style.transformOrigin='right center';turn.style.left='0';turn.style.right='auto';turn.style.transform='rotateY(-180deg)';requestAnimationFrame(()=>requestAnimationFrame(()=>turn.style.transform='rotateY(0deg)'))}
+  else requestAnimationFrame(()=>requestAnimationFrame(()=>turn.classList.add('flip')));
+  setTimeout(()=>{index=ni;render();turn.remove();animating=false},760)
+}
+prev.onclick=()=>go(-1);next.onclick=()=>go(1);right.onclick=()=>go(1);left.onclick=()=>go(-1);
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='PageDown')go(1);if(e.key==='ArrowLeft'||e.key==='PageUp')go(-1)});
+let x0=null;stage.addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});stage.addEventListener('touchend',e=>{if(x0==null)return;const d=e.changedTouches[0].clientX-x0;if(Math.abs(d)>45)go(d<0?1:-1);x0=null},{passive:true});
+addEventListener('resize',render);render();
+</script>
+</body>
+</html>
