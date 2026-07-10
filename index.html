@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes,viewport-fit=cover" />
+<meta name="theme-color" content="#17120f" />
+<title>MSU-SND 50th Commencement Exercises — Responsive Flipbook</title>
+<style>
+:root{
+  --bg:#17120f;--panel:#241b16;--panel2:#17110e;--gold:#e1b24a;
+  --text:#fff7e4;--muted:#cbbda9;--paper:#fff;
+  --safe-top:env(safe-area-inset-top,0px);--safe-right:env(safe-area-inset-right,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);--safe-left:env(safe-area-inset-left,0px)
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0}
+html{background:var(--bg)}
+body{font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at 50% 0,#3a281e 0,#17120f 58%);color:var(--text);overflow:hidden;overscroll-behavior:none}
+button{font:inherit}
+.app{width:100%;height:100vh;height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(8px + var(--safe-top)) calc(14px + var(--safe-right)) 8px calc(14px + var(--safe-left));background:rgba(20,14,11,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(225,178,74,.28);z-index:20;min-width:0}
+.title-wrap{min-width:0;display:flex;flex-direction:column;gap:2px}
+.title{font-weight:800;letter-spacing:.2px;font-size:clamp(13px,1.8vw,18px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.subtitle{font-size:clamp(10px,1.4vw,12px);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status{display:flex;align-items:center;gap:8px;white-space:nowrap;flex:0 0 auto}
+.counter{font-size:clamp(11px,1.4vw,13px);color:var(--muted)}
+.mode-badge{font-size:11px;color:#24180e;background:var(--gold);padding:4px 8px;border-radius:999px;font-weight:800}
+.stage{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;padding:clamp(6px,1.4vmin,14px);perspective:2600px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+.book{position:relative;transform-style:preserve-3d;transform-origin:center center;filter:drop-shadow(0 20px 26px rgba(0,0,0,.56));transition:transform .16s ease;will-change:transform}
+.book.dragging{transition:none}
+.spread{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;transform-style:preserve-3d}
+.page{position:relative;background:var(--paper);overflow:hidden;display:flex;align-items:center;justify-content:center;backface-visibility:hidden;contain:paint}
+.page.left{border-radius:10px 2px 2px 10px;box-shadow:inset -18px 0 24px rgba(0,0,0,.1),0 0 0 1px rgba(0,0,0,.06)}
+.page.right{border-radius:2px 10px 10px 2px;box-shadow:inset 18px 0 24px rgba(0,0,0,.1),0 0 0 1px rgba(0,0,0,.06)}
+.page.blank{background:linear-gradient(90deg,#f7f5ef,#fff)}
+.page img,.turning img{width:100%;height:100%;object-fit:contain;background:#fff;display:block;-webkit-user-drag:none}
+.gutter{position:absolute;left:50%;top:0;bottom:0;width:4px;transform:translateX(-2px);background:linear-gradient(#0000,rgba(0,0,0,.25),#0000);z-index:4;pointer-events:none}
+.turning{position:absolute;top:0;bottom:0;width:50%;right:0;transform-origin:left center;transform-style:preserve-3d;z-index:8;transition:transform .68s cubic-bezier(.2,.72,.1,1)}
+.turning.flip{transform:rotateY(-180deg)}
+.turning .front,.turning .back{position:absolute;inset:0;backface-visibility:hidden;background:#fff;overflow:hidden}
+.turning .front{border-radius:2px 10px 10px 2px;box-shadow:inset 18px 0 24px rgba(0,0,0,.1),0 0 0 1px rgba(0,0,0,.06)}
+.turning .back{transform:rotateY(180deg);border-radius:10px 2px 2px 10px;box-shadow:inset -18px 0 24px rgba(0,0,0,.1),0 0 0 1px rgba(0,0,0,.06)}
+.stage.zoomed{cursor:grab}.stage.zoomed.dragging{cursor:grabbing}
+.hint{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);z-index:3;max-width:calc(100% - 24px);padding:6px 10px;border-radius:999px;background:rgba(0,0,0,.28);color:rgba(255,255,255,.74);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.toolbar{display:grid;grid-template-columns:minmax(96px,1fr) auto auto minmax(96px,1fr);align-items:center;gap:8px;padding:8px calc(10px + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(10px + var(--safe-left));background:rgba(20,14,11,.88);backdrop-filter:blur(10px);border-top:1px solid rgba(225,178,74,.25);z-index:20}
+.control-group{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
+.nav-group:first-child{justify-content:flex-end}.nav-group:last-child{justify-content:flex-start}
+.btn{appearance:none;border:1px solid rgba(225,178,74,.52);background:#2c2019;color:var(--text);height:40px;padding:0 16px;border-radius:999px;font-weight:800;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:7px}
+.btn:hover{background:#493225}.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.34;cursor:not-allowed;transform:none}
+.icon-btn{width:42px;padding:0;min-width:42px;font-size:18px}.zoom-readout{min-width:68px;padding-inline:10px;font-variant-numeric:tabular-nums}.view-btn{min-width:86px;padding-inline:12px}
+.label-short{display:none}
+.single-view .spread{grid-template-columns:1fr}
+.single-view .page.left{display:none}
+.single-view .page.right{grid-column:1;border-radius:10px;box-shadow:0 0 0 1px rgba(0,0,0,.06)}
+.single-view .gutter{display:none}
+.single-view .turning{width:100%;left:0;right:auto;transform-origin:left center}
+.single-view .turning .front,.single-view .turning .back{border-radius:10px}
+@media(max-width:760px){
+  .subtitle{display:none}.mode-badge{display:none}.topbar{padding-bottom:7px}.toolbar{gap:5px;grid-template-columns:1fr auto auto 1fr}.btn{height:38px;padding-inline:12px}.nav-label{display:none}.label-short{display:inline}.view-btn{min-width:44px;width:44px;padding:0}.zoom-readout{min-width:58px}.hint{display:none}
+}
+@media(max-width:460px){
+  .status{gap:5px}.counter{font-size:11px}.toolbar{padding-left:6px;padding-right:6px}.btn{height:36px}.icon-btn{width:36px;min-width:36px}.zoom-readout{min-width:52px;font-size:12px}.view-btn{width:36px;min-width:36px}.control-group{gap:3px}
+}
+@media(max-height:520px){
+  .topbar{padding-top:calc(5px + var(--safe-top));padding-bottom:5px}.subtitle{display:none}.toolbar{padding-top:5px;padding-bottom:calc(5px + var(--safe-bottom))}.btn{height:34px}.hint{display:none}
+}
+@media(prefers-reduced-motion:reduce){.turning,.book{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="title-wrap">
+      <div class="title">MSU-SND 50th Commencement Exercises</div>
+      <div class="subtitle">Responsive A4 booklet • zoom, pan, swipe and pinch</div>
+    </div>
+    <div class="status"><span class="mode-badge" id="modeBadge">AUTO</span><span class="counter" id="counter"></span></div>
+  </header>
+
+  <main class="stage" id="stage" aria-label="Interactive graduation flipbook">
+    <div class="book" id="book">
+      <div class="spread">
+        <div class="page left blank" id="leftPage"></div>
+        <div class="page right" id="rightPage"></div>
+        <div class="gutter"></div>
+      </div>
+    </div>
+    <div class="hint">Click a page or use ← → • zoom with buttons, Ctrl+wheel, pinch, or double-click</div>
+  </main>
+
+  <footer class="toolbar" aria-label="Flipbook controls">
+    <div class="control-group nav-group"><button class="btn" id="prev" aria-label="Previous page"><span>←</span><span class="nav-label">Previous</span><span class="label-short">Prev</span></button></div>
+    <div class="control-group">
+      <button class="btn icon-btn" id="zoomOut" aria-label="Zoom out">−</button>
+      <button class="btn zoom-readout" id="zoomReset" title="Reset zoom">100%</button>
+      <button class="btn icon-btn" id="zoomIn" aria-label="Zoom in">+</button>
+    </div>
+    <div class="control-group"><button class="btn view-btn" id="viewToggle" title="Change page view" aria-label="Change page view"><span id="viewIcon">AUTO</span></button></div>
+    <div class="control-group nav-group"><button class="btn" id="next" aria-label="Next page"><span class="nav-label">Next</span><span class="label-short">Next</span><span>→</span></button></div>
+  </footer>
+</div>
+
+<script>
+'use strict';
+const total=29;
+const pages=Array.from({length:total},(_,i)=>`pages/page-${String(i+1).padStart(2,'0')}.jpg`);
+const A4_PAGE_RATIO=210/297, A4_SPREAD_RATIO=420/297;
+const MIN_ZOOM=1, MAX_ZOOM=4;
+
+let index=0, animating=false, zoom=1, panX=0, panY=0, ignoreClickUntil=0;
+let preferredView='auto'; // auto | single | spread
+let actualView='single';
+
+const app=document.getElementById('app'), stage=document.getElementById('stage'), book=document.getElementById('book');
+const left=document.getElementById('leftPage'), right=document.getElementById('rightPage');
+const prev=document.getElementById('prev'), next=document.getElementById('next'), counter=document.getElementById('counter');
+const zoomOut=document.getElementById('zoomOut'), zoomIn=document.getElementById('zoomIn'), zoomReset=document.getElementById('zoomReset');
+const viewToggle=document.getElementById('viewToggle'), viewIcon=document.getElementById('viewIcon'), modeBadge=document.getElementById('modeBadge');
+
+function setPage(el,n){
+  el.replaceChildren();
+  el.classList.toggle('blank',n<0||n>=total);
+  if(n>=0&&n<total){
+    const img=new Image();
+    img.src=pages[n];img.alt=`Page ${n+1}`;img.decoding='async';img.draggable=false;
+    if(Math.abs(n-index)<=2) img.loading='eager'; else img.loading='lazy';
+    el.appendChild(img);
+  }
+}
+
+function autoView(){
+  const r=stage.getBoundingClientRect();
+  // Use a spread only when two A4 pages can remain comfortably readable.
+  const landscape=r.width>r.height*1.08;
+  const enoughWidth=r.width>=760;
+  const pageWidthByHeight=(Math.max(100,r.height-18))*A4_PAGE_RATIO;
+  const enoughForTwo=r.width>=pageWidthByHeight*1.72;
+  return landscape&&enoughWidth&&enoughForTwo?'spread':'single';
+}
+function resolveView(){return preferredView==='auto'?autoView():preferredView}
+function updateViewClass(){
+  actualView=resolveView();
+  app.classList.toggle('single-view',actualView==='single');
+  const labels={auto:'AUTO',single:'1 PAGE',spread:'BOOK'};
+  modeBadge.textContent=preferredView==='auto'?`AUTO · ${actualView==='single'?'1 PAGE':'BOOK'}`:labels[preferredView];
+  viewIcon.textContent=preferredView==='auto'?'AUTO':preferredView==='single'?'1':'▯▯';
+  viewToggle.title=`View: ${labels[preferredView]}. Click to change.`;
+}
+function cycleView(){
+  preferredView=preferredView==='auto'?'single':preferredView==='single'?'spread':'auto';
+  resetZoom();render();
+}
+
+function clampPan(){
+  if(zoom<=1.001){panX=0;panY=0;return}
+  const sr=stage.getBoundingClientRect(), br=book.getBoundingClientRect();
+  const baseW=book.offsetWidth, baseH=book.offsetHeight;
+  const extraX=Math.max(0,(baseW*zoom-sr.width)/2)+Math.min(80,sr.width*.12);
+  const extraY=Math.max(0,(baseH*zoom-sr.height)/2)+Math.min(80,sr.height*.12);
+  panX=Math.max(-extraX,Math.min(extraX,panX));
+  panY=Math.max(-extraY,Math.min(extraY,panY));
+}
+function applyView(){
+  if(zoom<=1.001){zoom=1;panX=0;panY=0}else clampPan();
+  book.style.transform=`translate3d(${panX}px,${panY}px,0) scale(${zoom})`;
+  stage.classList.toggle('zoomed',zoom>1.001);
+  zoomReset.textContent=`${Math.round(zoom*100)}%`;
+  zoomOut.disabled=zoom<=MIN_ZOOM+.001;zoomIn.disabled=zoom>=MAX_ZOOM-.001;
+}
+function setZoom(value){zoom=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,value));applyView()}
+function resetZoom(){zoom=1;panX=0;panY=0;applyView()}
+
+function sizeBook(){
+  updateViewClass();
+  const r=stage.getBoundingClientRect();
+  const pad=Math.max(8,Math.min(20,Math.min(r.width,r.height)*.025));
+  const maxW=Math.max(120,r.width-pad*2), maxH=Math.max(120,r.height-pad*2);
+  const ratio=actualView==='single'?A4_PAGE_RATIO:A4_SPREAD_RATIO;
+  let w=maxW,h=w/ratio;
+  if(h>maxH){h=maxH;w=h*ratio}
+  book.style.width=`${Math.max(1,Math.floor(w))}px`;
+  book.style.height=`${Math.max(1,Math.floor(h))}px`;
+  applyView();
+}
+function render(){
+  sizeBook();
+  if(actualView==='single'){
+    setPage(left,-1);setPage(right,index);counter.textContent=`Page ${index+1} of ${total}`;
+  }else{
+    const l=index===0?-1:index-1;
+    setPage(left,l);setPage(right,index);
+    counter.textContent=l<0?`Cover · 1/${total}`:`Pages ${l+1}–${index+1} of ${total}`;
+  }
+  prev.disabled=index===0;next.disabled=index>=total-1;
+}
+function go(dir){
+  if(animating||zoom>1.001)return;
+  const ni=index+dir;if(ni<0||ni>=total)return;
+  animating=true;
+  const turn=document.createElement('div');turn.className='turning';
+  const front=document.createElement('div');front.className='front';
+  const back=document.createElement('div');back.className='back';
+  const fi=new Image(),bi=new Image();fi.src=pages[index];bi.src=pages[ni];fi.draggable=bi.draggable=false;
+  front.append(fi);back.append(bi);turn.append(front,back);book.append(turn);
+  if(dir<0){
+    turn.style.transformOrigin='right center';turn.style.left='0';turn.style.right='auto';turn.style.transform='rotateY(-180deg)';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>turn.style.transform='rotateY(0deg)'));
+  }else requestAnimationFrame(()=>requestAnimationFrame(()=>turn.classList.add('flip')));
+  const duration=matchMedia('(prefers-reduced-motion: reduce)').matches?30:700;
+  setTimeout(()=>{index=ni;render();turn.remove();animating=false},duration+30);
+}
+
+prev.addEventListener('click',()=>go(-1));next.addEventListener('click',()=>go(1));
+right.addEventListener('click',()=>{if(Date.now()>ignoreClickUntil&&zoom===1)go(1)});
+left.addEventListener('click',()=>{if(Date.now()>ignoreClickUntil&&zoom===1)go(-1)});
+zoomOut.addEventListener('click',()=>setZoom(zoom-.25));zoomIn.addEventListener('click',()=>setZoom(zoom+.25));zoomReset.addEventListener('click',resetZoom);viewToggle.addEventListener('click',cycleView);
+
+document.addEventListener('keydown',e=>{
+  const tag=document.activeElement?.tagName;if(tag==='INPUT'||tag==='TEXTAREA')return;
+  if(e.key==='ArrowRight'||e.key==='PageDown')go(1);
+  if(e.key==='ArrowLeft'||e.key==='PageUp')go(-1);
+  if(e.key==='+'||e.key==='=')setZoom(zoom+.25);
+  if(e.key==='-')setZoom(zoom-.25);
+  if(e.key==='0')resetZoom();
+  if(e.key.toLowerCase()==='v')cycleView();
+});
+stage.addEventListener('wheel',e=>{if(e.ctrlKey||e.metaKey){e.preventDefault();setZoom(zoom+(e.deltaY<0?.2:-.2))}},{passive:false});
+stage.addEventListener('dblclick',e=>{if(e.target.closest('.page')){zoom=zoom>1?1:2;if(zoom===1){panX=0;panY=0}applyView()}});
+
+const pointers=new Map();let gestureStart=null,lastTap=0;
+const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const midpoint=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+stage.addEventListener('pointerdown',e=>{
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});stage.setPointerCapture?.(e.pointerId);
+  if(pointers.size===1)gestureStart={x:e.clientX,y:e.clientY,panX,panY,time:Date.now(),moved:false,pinch:false};
+  if(pointers.size===2){const [a,b]=[...pointers.values()];gestureStart={distance:distance(a,b),zoom,mid:midpoint(a,b),panX,panY,moved:true,pinch:true};book.classList.add('dragging');stage.classList.add('dragging')}
+  else if(zoom>1){book.classList.add('dragging');stage.classList.add('dragging')}
+});
+stage.addEventListener('pointermove',e=>{
+  if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(!gestureStart)return;
+  if(pointers.size>=2){
+    const [a,b]=[...pointers.values()],mid=midpoint(a,b);
+    zoom=Math.min(MAX_ZOOM,Math.max(MIN_ZOOM,gestureStart.zoom*distance(a,b)/gestureStart.distance));
+    panX=gestureStart.panX+(mid.x-gestureStart.mid.x);panY=gestureStart.panY+(mid.y-gestureStart.mid.y);applyView();ignoreClickUntil=Date.now()+350;
+  }else if(zoom>1){
+    const p=[...pointers.values()][0];if(Math.hypot(p.x-gestureStart.x,p.y-gestureStart.y)>4)gestureStart.moved=true;
+    panX=gestureStart.panX+(p.x-gestureStart.x);panY=gestureStart.panY+(p.y-gestureStart.y);applyView();
+  }
+});
+function endPointer(e){
+  const p=pointers.get(e.pointerId);if(!p)return;
+  const dx=gestureStart?.x!=null?p.x-gestureStart.x:0,dy=gestureStart?.y!=null?p.y-gestureStart.y:0;
+  const elapsed=gestureStart?.time?Date.now()-gestureStart.time:9999,wasPinch=gestureStart?.pinch;
+  pointers.delete(e.pointerId);
+  if(pointers.size===0){
+    book.classList.remove('dragging');stage.classList.remove('dragging');
+    if(!wasPinch&&zoom===1&&elapsed<800&&Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)){ignoreClickUntil=Date.now()+350;go(dx<0?1:-1)}
+    else if(!wasPinch&&Math.abs(dx)<8&&Math.abs(dy)<8&&e.pointerType==='touch'){
+      const now=Date.now();if(now-lastTap<320){zoom=zoom>1?1:2;if(zoom===1){panX=0;panY=0}applyView();ignoreClickUntil=now+350}lastTap=now;
+    }
+    if(gestureStart?.moved)ignoreClickUntil=Date.now()+300;gestureStart=null;
+  }
+}
+stage.addEventListener('pointerup',endPointer);stage.addEventListener('pointercancel',endPointer);
+
+let resizeTimer=0;
+function scheduleRender(){clearTimeout(resizeTimer);resizeTimer=setTimeout(render,60)}
+new ResizeObserver(scheduleRender).observe(stage);
+window.addEventListener('orientationchange',()=>setTimeout(render,180));
+window.addEventListener('resize',scheduleRender);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
+
+render();
+</script>
+</body>
+</html>
